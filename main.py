@@ -1,29 +1,64 @@
 
+
 def get_time_presence(data: list):
     time = list(map(lambda x, y: [x, y], data[::2], data[1::2]))
     return time
 
 
-def appearance(intervals):
-    lesson = intervals['lesson']
-    intervals = get_time_presence(intervals['pupil']) + get_time_presence(intervals['tutor'])
+def check_intervals(lst):
+    '''Объединяет вложенные интервалы'''
+
+    data = get_time_presence(lst)
+    l1, l2 = get_intersections(data)
+    while l1:
+        data = remove_intersections(data, l1, l2)
+        l1, l2 = get_intersections(data)
+
+    return data
+
+
+def get_intersections(intervals):
     l1 = []
     l2 = []
-    dict_ = {}
+    intervals.sort()
+    for i, current_interval in enumerate(intervals):
+        for follow_interval in intervals[i + 1:]:
+            if current_interval[1] <= follow_interval[0]:
+                break
+            l1.append(current_interval)
+            l2.append(follow_interval)
+    return l1, l2
+
+
+def union(a, b):
+    return [min(a[0], b[0]), max(a[1], b[1])]
+
+
+def remove_intersections(data, l1, l2):
+    res = data
+    for line1, line2 in zip(l1, l2):
+        if line1 in res and line2 in res:
+            res.remove(line1)
+            res.remove(line2)
+            res.append(union(line1, line2))
+    return res
+
+
+def appearance(intervals):
+    lesson = intervals['lesson']
+    pupil = check_intervals(intervals['pupil'])
+    tutor = check_intervals(intervals['tutor'])
+    intervals = pupil + tutor
+
     for i, interval in enumerate(intervals):
         intervals[i] = cut(lesson, interval)
     intervals.sort()
-    get_intersections(intervals)
     total = 0
     for i, current_interval in enumerate(intervals):
         for follow_interval in intervals[i + 1:]:
             if current_interval[1] <= follow_interval[0]:
                 break
-            print(current_interval, ' ', follow_interval)
             total += get_len(current_interval, follow_interval)
-            l1.append(current_interval)
-            l2.append(follow_interval)
-    #print(get_answer(l1, l2))
     return total
 
 
@@ -32,7 +67,6 @@ def cut(borders, interval):
         return [0, 0]
     if borders[1] < interval[1]:  # Откусываем справа
         return [interval[0], borders[1]]
-
     if borders[0] > interval[0]:  # Откусываем слева
         return [borders[0], interval[1]]
     return interval
@@ -40,6 +74,9 @@ def cut(borders, interval):
 
 def get_len(a, b):
     return min(a[1], b[1]) - max(a[0], b[0])
+
+
+
 
 
 tests = [
@@ -82,59 +119,7 @@ tests = [
 ]
 
 
-def get_intersections(intervals):
-    l1 = []
-    l2 = []
-    total = 0
-    intervals.sort()
-    for i, current_interval in enumerate(intervals):
-        for follow_interval in intervals[i + 1:]:
-            if current_interval[1] <= follow_interval[0]:
-                break
-            print(current_interval, ' ', follow_interval)
-            total += get_len(current_interval, follow_interval)
-            l1.append(current_interval)
-            l2.append(follow_interval)
-    return l1, l2
-
-def union(a, b):
-    return [min(a[0], b[0]), max(a[1], b[1])]
-
-
-def remove_intersections(data, l1, l2):
-    res = data
-    for line1, line2 in zip(l1, l2):
-        if line1 in res and line2 in res:
-            res.remove(line1)
-            res.remove(line2)
-            res.append(union(line1, line2))
-    return res
-
-
 if __name__ == '__main__':
-    #t = appearance(tests[2]['data'])
-    data = get_time_presence(tests[3]['data']['pupil'])
-
-    while 1:
-        l1, l2 = get_intersections(data)
-        print(l1)
-        if l1:
-            data = remove_intersections(data, l1, l2)
-            print(f'res = {data}')
-        else:
-            res = []
-            for el in data:
-                res.append(el[0])
-                res.append(el[1])
-            print(res)
-            tests[3]['data']['pupil'] = res
-            break
-
-    t = appearance(tests[3]['data'])
-    print(t)
-
-    '''
     for i, test in enumerate(tests):
         test_answer = appearance(test['data'])
         assert test_answer == test['answer'], f'Error on test case {i}, got {test_answer}, expected {test["answer"]}'
-    '''
